@@ -1,0 +1,181 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+import java.text.DecimalFormat;
+
+public class BaoCaoGUI extends JFrame {
+
+    private JTextArea txtAreaReport;
+    private JButton btnTongDoanhThu, btnBaoCaoLuong, btnDoanhThuTheoThuoc;
+
+    // Phương thức kết nối đến cơ sở dữ liệu
+    public static Connection getConnection() {
+        Connection connection = null;
+        try {
+            // Đăng ký driver JDBC
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
+            // URL kết nối với cơ sở dữ liệu SQL Server
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+
+            // Tạo kết nối
+            connection = DriverManager.getConnection(url, username, password);
+        } catch (ClassNotFoundException | SQLException e) {
+            e.printStackTrace();
+        }
+        return connection;
+    }
+
+    public BaoCaoGUI() {
+        // Thiết lập giao diện
+        setTitle("Báo Cáo Quản Lý Quầy Thuốc");
+        setSize(600, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Tạo đối tượng JTextArea và thiết lập kích thước chữ
+        txtAreaReport = new JTextArea();
+        txtAreaReport.setEditable(false);
+        txtAreaReport.setFont(new Font("Arial", Font.PLAIN, 16)); // Đặt phông chữ và kích thước
+        JScrollPane scrollPane = new JScrollPane(txtAreaReport);
+
+        JPanel panelButtons = new JPanel();
+        panelButtons.setLayout(new FlowLayout());
+
+        btnTongDoanhThu = new JButton("Tổng Doanh Thu");
+        btnBaoCaoLuong = new JButton("Thống kê Lương");
+        btnDoanhThuTheoThuoc = new JButton("Doanh Thu Theo Thuốc");
+
+        // Đặt phông chữ và kích thước cho các nút
+        Font buttonFont = new Font("Arial", Font.PLAIN, 16);  // Kích thước chữ cho nút
+        btnTongDoanhThu.setFont(buttonFont);
+        btnBaoCaoLuong.setFont(buttonFont);
+        btnDoanhThuTheoThuoc.setFont(buttonFont);
+
+        // Đặt kích thước cho các nút
+        btnTongDoanhThu.setPreferredSize(new Dimension(200, 40)); // Đặt chiều rộng và chiều cao
+        btnBaoCaoLuong.setPreferredSize(new Dimension(200, 40));
+        btnDoanhThuTheoThuoc.setPreferredSize(new Dimension(200, 40));
+
+        panelButtons.add(btnTongDoanhThu);
+        panelButtons.add(btnBaoCaoLuong);
+        panelButtons.add(btnDoanhThuTheoThuoc);
+
+        add(panelButtons, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Sự kiện button
+        btnTongDoanhThu.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                getTongDoanhThu();
+            }
+        });
+
+        btnBaoCaoLuong.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                getTongLuong();
+            }
+        });
+
+        btnDoanhThuTheoThuoc.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                getDoanhThuTheoThuoc();
+            }
+        });
+    }
+
+    // Lấy tổng doanh thu từ bảng HoaDon
+    private void getTongDoanhThu() {
+        String query = "SELECT SUM(tongTien) AS tongDoanhThu FROM HoaDon";
+        try (Connection connection = getConnection();
+             Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            if (rs.next()) {
+                double totalRevenue = rs.getDouble("tongDoanhThu");
+
+                // Định dạng tổng doanh thu
+                DecimalFormat df = new DecimalFormat("#,###");
+                String formattedRevenue = df.format(totalRevenue);
+
+                txtAreaReport.setText("Tổng Doanh Thu: " + formattedRevenue);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi lấy tổng doanh thu.");
+        }
+    }
+
+    // Lấy tổng lương của các nhân viên từ bảng NhanVien
+    private void getTongLuong() {
+        String query = "SELECT SUM(Luong) AS tongLuong FROM NhanVien";
+        try (Connection connection = getConnection();
+             Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            if (rs.next()) {
+                double totalSalary = rs.getDouble("tongLuong");
+
+                // Định dạng tổng lương
+                DecimalFormat df = new DecimalFormat("#,###");
+                String formattedSalary = df.format(totalSalary);
+
+                txtAreaReport.setText("Tổng lương nhân viên: " + formattedSalary);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi lấy tổng lương.");
+        }
+    }
+
+    // Lấy doanh thu theo mã thuốc
+    private void getDoanhThuTheoThuoc() {
+        String maThuoc = JOptionPane.showInputDialog(this, "Nhập mã thuốc:");
+        String query = "SELECT SUM(soLuong * giaBan) AS doanhThu FROM ChiTietHoaDon "
+                     + "JOIN Thuoc ON ChiTietHoaDon.maThuoc = Thuoc.maThuoc "
+                     + "WHERE Thuoc.maThuoc = ?";
+
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            stmt.setString(1, maThuoc);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                double revenuePerDrug = rs.getDouble("doanhThu");
+
+                // Định dạng doanh thu
+                DecimalFormat df = new DecimalFormat("#,###");
+                String formattedRevenuePerDrug = df.format(revenuePerDrug);
+
+                txtAreaReport.setText("Doanh Thu Của Thuốc " + maThuoc + ": " + formattedRevenuePerDrug);
+            } else {
+                txtAreaReport.setText("Không có dữ liệu cho mã thuốc này.");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi lấy doanh thu theo thuốc.");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new BaoCaoGUI().setVisible(true);
+            }
+        });
+    }
+}
