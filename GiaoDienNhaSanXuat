@@ -1,0 +1,191 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+
+public class GiaoDienNhaSanXuat extends JFrame {
+    private JTextField txtMaNSX, txtTenNSX, txtDiaChi, txtSDT, txtEmail;
+    private JTextArea txtDanhSach;
+    private JButton btnThem, btnXoa, btnXem, btnSua;
+    private Connection connection;
+
+    public GiaoDienNhaSanXuat() {
+        // Tăng cỡ chữ hiển thị của giao diện
+        setUIFont(new Font("Arial", Font.PLAIN, 14));
+
+        // Thiết lập kết nối cơ sở dữ liệu
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối cơ sở dữ liệu!");
+            return;
+        }
+
+        setTitle("GIAO DIỆN QUẢN LÝ NHÀ SẢN XUẤT");
+        setSize(600, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel nhập liệu
+        JPanel panelInput = new JPanel(new GridLayout(5, 2, 5, 5));
+        panelInput.add(new JLabel("Mã nhà sản xuất:"));
+        txtMaNSX = new JTextField();
+        panelInput.add(txtMaNSX);
+
+        panelInput.add(new JLabel("Tên nhà sản xuất:"));
+        txtTenNSX = new JTextField();
+        panelInput.add(txtTenNSX);
+
+        panelInput.add(new JLabel("Địa chỉ:"));
+        txtDiaChi = new JTextField();
+        panelInput.add(txtDiaChi);
+
+        panelInput.add(new JLabel("Số điện thoại:"));
+        txtSDT = new JTextField();
+        panelInput.add(txtSDT);
+
+        panelInput.add(new JLabel("Email:"));
+        txtEmail = new JTextField();
+        panelInput.add(txtEmail);
+
+        add(panelInput, BorderLayout.NORTH);
+
+        // Panel các nút
+        JPanel panelButtons = new JPanel(new FlowLayout());
+        btnThem = new JButton("Thêm");
+        btnXoa = new JButton("Xóa");
+        btnXem = new JButton("Tìm kiếm");
+        btnSua = new JButton("Sửa");
+        panelButtons.add(btnThem);
+        panelButtons.add(btnXoa);
+        panelButtons.add(btnXem);
+        panelButtons.add(btnSua);
+        add(panelButtons, BorderLayout.CENTER);
+
+        // TextArea hiển thị danh sách
+        txtDanhSach = new JTextArea(10, 50);
+        txtDanhSach.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(txtDanhSach);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Xử lý sự kiện cho các nút
+        btnThem.addActionListener(e -> themNhaSanXuat());
+        btnXoa.addActionListener(e -> xoaNhaSanXuat());
+        btnXem.addActionListener(e -> xemNhaSanXuat());
+        btnSua.addActionListener(e -> suaNhaSanXuat());
+    }
+
+    // Hàm xử lý sự kiện thêm nhà sản xuất
+    private void themNhaSanXuat() {
+        try {
+            String query = "INSERT INTO NhaSanXuat (maNSX, tenNSX, diaChi, SDT, Email) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNSX.getText());
+            statement.setString(2, txtTenNSX.getText());
+            statement.setString(3, txtDiaChi.getText());
+            statement.setString(4, txtSDT.getText());
+            statement.setString(5, txtEmail.getText());
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Thêm nhà sản xuất thành công!");
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi thêm nhà sản xuất!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xóa nhà sản xuất
+    private void xoaNhaSanXuat() {
+        try {
+            String query = "DELETE FROM NhaSanXuat WHERE maNSX = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNSX.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Xóa nhà sản xuất thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhà sản xuất!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa nhà sản xuất!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xem nhà sản xuất
+    private void xemNhaSanXuat() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM NhaSanXuat WHERE maNSX = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNSX.getText());
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                txtDanhSach.append("Mã nhà sản xuất: " + resultSet.getString("maNSX") + "\n");
+                txtDanhSach.append("Tên nhà sản xuất: " + resultSet.getString("tenNSX") + "\n");
+                txtDanhSach.append("Địa chỉ: " + resultSet.getString("diaChi") + "\n");
+                txtDanhSach.append("Số điện thoại: " + resultSet.getString("SDT") + "\n");
+                txtDanhSach.append("Email: " + resultSet.getString("Email") + "\n");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhà sản xuất!");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem nhà sản xuất!");
+        }
+    }
+
+    // Hàm xử lý sự kiện sửa nhà sản xuất
+    private void suaNhaSanXuat() {
+        try {
+            String query = "UPDATE NhaSanXuat SET tenNSX = ?, diaChi = ?, SDT = ?, Email = ? WHERE maNSX = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtTenNSX.getText());
+            statement.setString(2, txtDiaChi.getText());
+            statement.setString(3, txtSDT.getText());
+            statement.setString(4, txtEmail.getText());
+            statement.setString(5, txtMaNSX.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Cập nhật nhà sản xuất thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhà sản xuất!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi sửa nhà sản xuất!");
+        }
+    }
+
+    // Hàm đặt lại các trường nhập liệu
+    private void clearInputFields() {
+        txtMaNSX.setText("");
+        txtTenNSX.setText("");
+        txtDiaChi.setText("");
+        txtSDT.setText("");
+        txtEmail.setText("");
+    }
+
+    // Hàm đặt cỡ chữ mặc định cho toàn bộ giao diện
+    private void setUIFont(Font font) {
+        UIManager.put("Label.font", font);
+        UIManager.put("Button.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("TextArea.font", font);
+        UIManager.put("Panel.font", font);
+        UIManager.put("OptionPane.font", font);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new GiaoDienNhaSanXuat().setVisible(true));
+    }
+}
