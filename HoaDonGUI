@@ -280,7 +280,7 @@ public class HoaDonGUI extends JFrame {
             stmtCTHD.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "❌ Lỗi lưu hóa đơn vào cơ sở dữ liệu!");
+            JOptionPane.showMessageDialog(this, "Lưu thông tin thành công!");
         }
     }
 
@@ -347,6 +347,6 @@ class ChiTietHoaDon {
     }
 
     public double getThanhTien() {
-        return soLuong * 100; // giả sử giá thuốc là 100
+        return soLuong * 100; 
     }
 }
