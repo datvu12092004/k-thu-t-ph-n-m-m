@@ -14,12 +14,13 @@ public class MainMenuGUI extends JFrame {
         setSize(600, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setLayout(new GridLayout(4, 2, 10, 10));
+        setLayout(new GridLayout(5, 2, 10, 10));  // Cập nhật lại GridLayout với 5 hàng và 2 cột
 
         JLabel logoLabel = new JLabel(new ImageIcon("icons/logo.png"));
         logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(logoLabel);
 
+        // Các nút chức năng
         JButton btnThuoc = createStyledButton("Quản Lý Thuốc", "icons/medicine.png");
         JButton btnKhachHang = createStyledButton("Quản Lý Khách Hàng", "icons/customer.png");
         JButton btnHoaDon = createStyledButton("Quản Lý Hóa Đơn", "icons/invoice.png");
@@ -27,6 +28,7 @@ public class MainMenuGUI extends JFrame {
         JButton btnNhapKho = createStyledButton("Quản Lý Nhập Kho", "icons/inventory.png");
         JButton btnXuatKho = createStyledButton("Quản Lý Xuất Kho", "icons/outgoing.png");
         JButton btnNhanVien = createStyledButton("Quản Lý Nhân Viên", "icons/staff.png");
+        JButton btnBaoCao = createStyledButton("Báo Cáo", "icons/report.png");  // Thêm nút Báo Cáo
 
         // Ẩn tất cả các nút trước, sau đó bật lên theo quyền
         btnThuoc.setVisible(false);
@@ -36,6 +38,7 @@ public class MainMenuGUI extends JFrame {
         btnNhapKho.setVisible(false);
         btnXuatKho.setVisible(false);
         btnNhanVien.setVisible(false);
+        btnBaoCao.setVisible(false);  // Ẩn nút Báo Cáo
 
         // Phân quyền theo username
         if (username.equals("CHT")) { // Chủ hiệu thuốc
@@ -46,6 +49,7 @@ public class MainMenuGUI extends JFrame {
             btnNhapKho.setVisible(true);
             btnXuatKho.setVisible(true);
             btnNhanVien.setVisible(true);
+            btnBaoCao.setVisible(true);  // Hiển thị nút Báo Cáo cho Chủ hiệu thuốc
         } else if (username.equals("NVBH")) { // Nhân viên bán hàng
             btnThuoc.setVisible(true);
             btnKhachHang.setVisible(true);
@@ -58,6 +62,7 @@ public class MainMenuGUI extends JFrame {
             btnNhaSanXuat.setVisible(true);
         }
 
+        // Thêm sự kiện cho các nút
         btnThuoc.addActionListener(e -> new giao_dien_thuoc().setVisible(true));
         btnKhachHang.addActionListener(e -> new GiaoDienKhachHang().setVisible(true));
         btnHoaDon.addActionListener(e -> new HoaDonGUI().setVisible(true));
@@ -66,6 +71,10 @@ public class MainMenuGUI extends JFrame {
         btnXuatKho.addActionListener(e -> new giao_dien_xuat_kho().setVisible(true));
         btnNhanVien.addActionListener(e -> new giao_dien_nhan_vien().setVisible(true));
 
+        // Sự kiện cho nút Báo Cáo (Chỉ cho phép Chủ hiệu thuốc truy cập)
+        btnBaoCao.addActionListener(e -> new BaoCaoGUI().setVisible(true));
+
+        // Thêm các nút vào giao diện
         add(btnThuoc);
         add(btnKhachHang);
         add(btnHoaDon);
@@ -73,6 +82,7 @@ public class MainMenuGUI extends JFrame {
         add(btnNhapKho);
         add(btnXuatKho);
         add(btnNhanVien);
+        add(btnBaoCao);  // Thêm nút Báo Cáo vào giao diện
 
         setVisible(true);
     }
