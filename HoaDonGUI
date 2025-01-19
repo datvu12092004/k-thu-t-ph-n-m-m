@@ -1,0 +1,352 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class HoaDonGUI extends JFrame {
+    private JTextField txtMaHD, txtSoLuong, txtTimKiemHD;
+    private JComboBox<String> cbThuoc, cbKhachHang, cbNhanVien;
+    private JTextArea taHoaDon;
+    private JButton btnThemThuoc, btnLuuHoaDon, btnXoaDauVao, btnTimKiem;
+    private Connection connection;
+
+    private List<Thuoc> thuocList;
+    private List<ChiTietHoaDon> chiTietHoaDonList;
+
+    public HoaDonGUI() {
+        // Cấu hình giao diện
+        setTitle("Quản Lý Hóa Đơn Thuốc");
+        setSize(600, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new FlowLayout());
+
+        // Mã hóa đơn (tự động tạo mã)
+        add(new JLabel("Mã Hóa Đơn:"));
+        txtMaHD = new JTextField(20);
+        txtMaHD.setText(generateHoaDonCode()); // Tạo mã hóa đơn tự động
+        txtMaHD.setEditable(false); // Không cho phép chỉnh sửa
+        add(txtMaHD);
+
+        // Chọn thuốc
+        add(new JLabel("Chọn Thuốc:"));
+        cbThuoc = new JComboBox<>();
+        add(cbThuoc);
+
+        // Chọn khách hàng
+        add(new JLabel("Chọn Khách Hàng:"));
+        cbKhachHang = new JComboBox<>();
+        add(cbKhachHang);
+
+        // Chọn nhân viên
+        add(new JLabel("Chọn Nhân Viên:"));
+        cbNhanVien = new JComboBox<>();
+        add(cbNhanVien);
+
+        // Nhập số lượng
+        add(new JLabel("Số Lượng:"));
+        txtSoLuong = new JTextField(5);
+        add(txtSoLuong);
+
+        // Thêm thuốc vào hóa đơn
+        btnThemThuoc = new JButton("Thêm Thuốc");
+        add(btnThemThuoc);
+
+        // Hiển thị hóa đơn
+        taHoaDon = new JTextArea(10, 40);
+        taHoaDon.setEditable(false);
+        add(new JScrollPane(taHoaDon));
+
+        // Lưu hóa đơn
+        btnLuuHoaDon = new JButton("Lưu Hóa Đơn");
+        add(btnLuuHoaDon);
+
+        // Xóa các lựa chọn
+        btnXoaDauVao = new JButton("Xóa Dữ Liệu");
+        add(btnXoaDauVao);
+
+        // Tìm kiếm hóa đơn theo mã
+        add(new JLabel("Tìm Kiếm Hóa Đơn:"));
+        txtTimKiemHD = new JTextField(20);
+        add(txtTimKiemHD);
+        btnTimKiem = new JButton("Tìm Kiếm");
+        add(btnTimKiem);
+
+        // Xử lý sự kiện
+        btnThemThuoc.addActionListener(e -> {
+            String selectedThuoc = (String) cbThuoc.getSelectedItem();
+            int soLuong = Integer.parseInt(txtSoLuong.getText());
+
+            Thuoc thuoc = thuocList.stream()
+                    .filter(t -> t.gettenThuoc().equals(selectedThuoc))
+                    .findFirst()
+                    .orElse(null);
+
+            if (thuoc != null) {
+                ChiTietHoaDon chiTiet = new ChiTietHoaDon(thuoc, soLuong);
+                chiTietHoaDonList.add(chiTiet);
+                updateHoaDon();
+            }
+        });
+
+        btnLuuHoaDon.addActionListener(e -> {
+            saveHoaDonToDatabase();
+            // Tạo mã hóa đơn mới sau khi lưu
+            txtMaHD.setText(generateHoaDonCode()); // Tạo mã mới
+            chiTietHoaDonList.clear(); // Xóa chi tiết hóa đơn
+            updateHoaDon();
+            JOptionPane.showMessageDialog(this, "Hóa Đơn đã được lưu!");
+        });
+
+        btnXoaDauVao.addActionListener(e -> {
+            chiTietHoaDonList.clear();
+            updateHoaDon();
+        });
+
+        btnTimKiem.addActionListener(e -> {
+            String maHoaDon = txtTimKiemHD.getText();
+            findHoaDon(maHoaDon);
+        });
+
+        // Kết nối cơ sở dữ liệu và tải dữ liệu
+        connectToDatabase();
+        loadThuocFromDatabase();
+        loadKhachHangFromDatabase();
+        loadNhanVienFromDatabase();
+
+        chiTietHoaDonList = new ArrayList<>();
+
+        setVisible(true);
+    }
+
+    // Tạo mã hóa đơn tự động
+    private String generateHoaDonCode() {
+        long timestamp = System.currentTimeMillis(); // Sử dụng thời gian hiện tại
+        return "HD" + timestamp; // Mã hóa đơn theo thời gian
+    }
+
+    // Kết nối đến cơ sở dữ liệu
+    private void connectToDatabase() {
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("✅ Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi kết nối cơ sở dữ liệu!");
+        }
+    }
+
+    // Tải danh sách thuốc từ cơ sở dữ liệu
+    private void loadThuocFromDatabase() {
+        thuocList = new ArrayList<>();
+        try {
+            String query = "SELECT maThuoc, tenThuoc FROM Thuoc";
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                String maThuoc = rs.getString("maThuoc");
+                String tenThuoc = rs.getString("tenThuoc");
+                thuocList.add(new Thuoc(maThuoc, tenThuoc));
+            }
+
+            // Thêm các thuốc vào ComboBox
+            for (Thuoc thuoc : thuocList) {
+                cbThuoc.addItem(thuoc.gettenThuoc());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi tải danh sách thuốc từ cơ sở dữ liệu!");
+        }
+    }
+
+    // Tải danh sách khách hàng từ cơ sở dữ liệu
+    private void loadKhachHangFromDatabase() {
+        try {
+            String query = "SELECT maKH, hoTen FROM KhachHang";
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                cbKhachHang.addItem(rs.getString("hoTen"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi tải danh sách khách hàng!");
+        }
+    }
+
+    // Tải danh sách nhân viên từ cơ sở dữ liệu
+    private void loadNhanVienFromDatabase() {
+        try {
+            String query = "SELECT maNV, hoTen FROM NhanVien";
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                cbNhanVien.addItem(rs.getString("hoTen"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi tải danh sách nhân viên!");
+        }
+    }
+
+    // Tìm kiếm hóa đơn theo mã
+    private void findHoaDon(String maHoaDon) {
+        try {
+            String query = "SELECT * FROM HoaDon WHERE maHD = ?";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, maHoaDon);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Mã Hóa Đơn: ").append(rs.getString("maHD")).append("\n");
+                sb.append("Khách Hàng: ").append(rs.getString("maKH")).append("\n");
+                sb.append("Nhân Viên: ").append(rs.getString("maNV")).append("\n");
+
+                String queryCTHD = "SELECT * FROM ChiTietHoaDon WHERE maHD = ?";
+                PreparedStatement stmtCTHD = connection.prepareStatement(queryCTHD);
+                stmtCTHD.setString(1, maHoaDon);
+                ResultSet rsCTHD = stmtCTHD.executeQuery();
+
+                sb.append("Chi Tiết Hóa Đơn:\n");
+                while (rsCTHD.next()) {
+                    sb.append("Thuốc: ").append(rsCTHD.getString("maThuoc"))
+                            .append(" - Số Lượng: ").append(rsCTHD.getInt("soLuong")).append("\n");
+                }
+
+                taHoaDon.setText(sb.toString());
+            } else {
+                taHoaDon.setText("Hóa đơn không tồn tại!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi tìm kiếm hóa đơn!");
+        }
+    }
+
+    private void updateHoaDon() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Mã Hóa Đơn: ").append(txtMaHD.getText()).append("\n");
+        sb.append("Khách Hàng: ").append(cbKhachHang.getSelectedItem()).append("\n");
+        sb.append("Nhân Viên: ").append(cbNhanVien.getSelectedItem()).append("\n");
+        sb.append("Chi Tiết Hóa Đơn:\n");
+        double tongTien = 0;
+        for (ChiTietHoaDon chiTiet : chiTietHoaDonList) {
+            sb.append(chiTiet.getThuoc().gettenThuoc()).append(" - Số Lượng: ")
+                    .append(chiTiet.getsoLuong()).append(" - Thành Tiền: ")
+                    .append(chiTiet.getThanhTien()).append("\n");
+            tongTien += chiTiet.getThanhTien();
+        }
+        sb.append("Tổng Tiền: ").append(tongTien);
+        taHoaDon.setText(sb.toString());
+    }
+
+    private void saveHoaDonToDatabase() {
+        try {
+            // Lấy mã khách hàng từ tên khách hàng đã chọn
+            String maKH = getMaKhachHangFromName((String) cbKhachHang.getSelectedItem());
+
+            // Lấy mã nhân viên từ tên nhân viên đã chọn
+            String maNV = getMaNhanVienFromName((String) cbNhanVien.getSelectedItem());
+
+            // Lưu vào bảng HoaDon
+            String maHD = txtMaHD.getText();
+            String queryHoaDon = "INSERT INTO HoaDon (maHD, maKH, maNV, ngayLap, tongTien) VALUES (?, ?, ?, GETDATE(), ?)";
+            PreparedStatement stmtHoaDon = connection.prepareStatement(queryHoaDon);
+            stmtHoaDon.setString(1, maHD);
+            stmtHoaDon.setString(2, maKH);
+            stmtHoaDon.setString(3, maNV);
+            stmtHoaDon.setDouble(4, chiTietHoaDonList.stream().mapToDouble(ChiTietHoaDon::getThanhTien).sum());
+            stmtHoaDon.executeUpdate();
+
+            // Lưu chi tiết hóa đơn
+            String queryCTHD = "INSERT INTO ChiTietHoaDon (maHD, maThuoc, soLuong) VALUES (?, ?, ?)";
+            PreparedStatement stmtCTHD = connection.prepareStatement(queryCTHD);
+            for (ChiTietHoaDon chiTiet : chiTietHoaDonList) {
+                stmtCTHD.setString(1, maHD);
+                stmtCTHD.setString(2, chiTiet.getThuoc().getmaThuoc());
+                stmtCTHD.setInt(3, chiTiet.getsoLuong());
+                stmtCTHD.addBatch();
+            }
+            stmtCTHD.executeBatch();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Lỗi lưu hóa đơn vào cơ sở dữ liệu!");
+        }
+    }
+
+    private String getMaKhachHangFromName(String name) throws SQLException {
+        String query = "SELECT maKH FROM KhachHang WHERE hoTen = ?";
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setString(1, name);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getString("maKH");
+        }
+        return null;
+    }
+
+    private String getMaNhanVienFromName(String name) throws SQLException {
+        String query = "SELECT maNV FROM NhanVien WHERE hoTen = ?";
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setString(1, name);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getString("maNV");
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        new HoaDonGUI();
+    }
+}
+
+class Thuoc {
+    private String maThuoc;
+    private String tenThuoc;
+
+    public Thuoc(String maThuoc, String tenThuoc) {
+        this.maThuoc = maThuoc;
+        this.tenThuoc = tenThuoc;
+    }
+
+    public String getmaThuoc() {
+        return maThuoc;
+    }
+
+    public String gettenThuoc() {
+        return tenThuoc;
+    }
+}
+
+class ChiTietHoaDon {
+    private Thuoc thuoc;
+    private int soLuong;
+
+    public ChiTietHoaDon(Thuoc thuoc, int soLuong) {
+        this.thuoc = thuoc;
+        this.soLuong = soLuong;
+    }
+
+    public Thuoc getThuoc() {
+        return thuoc;
+    }
+
+    public int getsoLuong() {
+        return soLuong;
+    }
+
+    public double getThanhTien() {
+        return soLuong * 100; // giả sử giá thuốc là 100
+    }
+}
