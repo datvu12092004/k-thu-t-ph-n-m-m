@@ -1,0 +1,272 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+
+public class giao_dien_nhan_vien extends JFrame {
+    private JTextField txtMaNV, txtHoTen, txtSDT, txtDiaChi, txtChucVu, txtEmail, txtCaLamViec, txtLuong;
+    private JTextArea txtDanhSach;
+    private JButton btnThem, btnXoa, btnXem, btnSua;
+    private Connection connection;
+
+    public giao_dien_nhan_vien() {
+        // Tăng cỡ chữ hiển thị của giao diện
+        setUIFont(new Font("Arial", Font.PLAIN, 14));
+
+        // Thiết lập kết nối cơ sở dữ liệu
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối cơ sở dữ liệu!");
+            return;
+        }
+
+        setTitle("GIAO DIỆN THÔNG TIN NHÂN VIÊN");
+        setSize(600, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel nhập liệu
+        JPanel panelInput = new JPanel(new GridLayout(8, 2, 5, 5));
+        panelInput.add(new JLabel("Mã nhân viên:"));
+        txtMaNV = new JTextField();
+        panelInput.add(txtMaNV);
+
+        panelInput.add(new JLabel("Họ tên:"));
+        txtHoTen = new JTextField();
+        panelInput.add(txtHoTen);
+
+        panelInput.add(new JLabel("Số điện thoại:"));
+        txtSDT = new JTextField();
+        panelInput.add(txtSDT);
+
+        panelInput.add(new JLabel("Địa chỉ:"));
+        txtDiaChi = new JTextField();
+        panelInput.add(txtDiaChi);
+
+        panelInput.add(new JLabel("Chức vụ:"));
+        txtChucVu = new JTextField();
+        panelInput.add(txtChucVu);
+
+        panelInput.add(new JLabel("Email:"));
+        txtEmail = new JTextField();
+        panelInput.add(txtEmail);
+
+        panelInput.add(new JLabel("Ca làm việc:"));
+        txtCaLamViec = new JTextField();
+        panelInput.add(txtCaLamViec);
+
+        panelInput.add(new JLabel("Lương:"));
+        txtLuong = new JTextField();
+        panelInput.add(txtLuong);
+
+        add(panelInput, BorderLayout.NORTH);
+
+        // Panel các nút
+        JPanel panelButtons = new JPanel(new FlowLayout());
+        btnThem = new JButton("Thêm");
+        btnXoa = new JButton("Xóa");
+        btnXem = new JButton("Tìm kiếm");
+        btnSua = new JButton("Sửa");
+        panelButtons.add(btnThem);
+        panelButtons.add(btnXoa);
+        panelButtons.add(btnXem);
+        panelButtons.add(btnSua);
+        add(panelButtons, BorderLayout.CENTER);
+
+        // TextArea hiển thị danh sách
+        txtDanhSach = new JTextArea(10, 50);
+        txtDanhSach.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(txtDanhSach);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Xử lý sự kiện cho các nút
+        btnThem.addActionListener(e -> themNhanVien());
+        btnXoa.addActionListener(e -> xoaNhanVien());
+        btnXem.addActionListener(e -> xemNhanVien());
+        btnSua.addActionListener(e -> suaNhanVien());
+    }
+
+    // Hàm xử lý sự kiện thêm nhân viên
+    private void themNhanVien() {
+        try {
+            String query = "INSERT INTO NhanVien (maNV, hoTen, SDT, diaChi, chucVu, Email, caLamViec, Luong) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNV.getText());
+            statement.setString(2, txtHoTen.getText());
+            statement.setString(3, txtSDT.getText());
+            statement.setString(4, txtDiaChi.getText());
+            statement.setString(5, txtChucVu.getText());
+            statement.setString(6, txtEmail.getText());
+            statement.setString(7, txtCaLamViec.getText());
+            statement.setFloat(8, Float.parseFloat(txtLuong.getText()));
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Thêm thông tin nhân viên thành công!");
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi thêm thông tin!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xóa nhân viên
+    private void xoaNhanVien() {
+        try {
+            String query = "DELETE FROM NhanVien WHERE maNV = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNV.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Xóa thông tin nhân viên thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa thông tin!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xem nhân viên
+    private void xemNhanVien() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM NhanVien WHERE maNV = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtMaNV.getText());
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                txtDanhSach.append("Mã nhân viên: " + resultSet.getString("maNV") + "\n");
+                txtDanhSach.append("Họ tên: " + resultSet.getString("hoTen") + "\n");
+                txtDanhSach.append("Số điện thoại: " + resultSet.getString("SDT") + "\n");
+                txtDanhSach.append("Địa chỉ: " + resultSet.getString("diaChi") + "\n");
+                txtDanhSach.append("Chức vụ: " + resultSet.getString("chucVu") + "\n");
+                txtDanhSach.append("Email: " + resultSet.getString("Email") + "\n");
+                txtDanhSach.append("Ca làm việc: " + resultSet.getString("caLamViec") + "\n");
+                txtDanhSach.append("Lương: " + resultSet.getFloat("Luong") + "\n");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên!");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem thông tin!");
+        }
+    }
+
+    // Hàm xử lý sự kiện sửa nhân viên
+    private void suaNhanVien() {
+        try {
+            StringBuilder query = new StringBuilder("UPDATE NhanVien SET ");
+            boolean hasFieldToUpdate = false;
+
+            if (!txtHoTen.getText().trim().isEmpty()) {
+                query.append("hoTen = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtSDT.getText().trim().isEmpty()) {
+                query.append("SDT = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtDiaChi.getText().trim().isEmpty()) {
+                query.append("diaChi = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtChucVu.getText().trim().isEmpty()) {
+                query.append("chucVu = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtEmail.getText().trim().isEmpty()) {
+                query.append("Email = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtCaLamViec.getText().trim().isEmpty()) {
+                query.append("caLamViec = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtLuong.getText().trim().isEmpty()) {
+                query.append("Luong = ?, ");
+                hasFieldToUpdate = true;
+            }
+
+            if (!hasFieldToUpdate) {
+                JOptionPane.showMessageDialog(this, "Không có trường nào để cập nhật!");
+                return;
+            }
+
+            query.setLength(query.length() - 2); // Xóa dấu phẩy cuối cùng
+            query.append(" WHERE maNV = ?");
+
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            int paramIndex = 1;
+
+            if (!txtHoTen.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtHoTen.getText());
+            }
+            if (!txtSDT.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtSDT.getText());
+            }
+            if (!txtDiaChi.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtDiaChi.getText());
+            }
+            if (!txtChucVu.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtChucVu.getText());
+            }
+            if (!txtEmail.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtEmail.getText());
+            }
+            if (!txtCaLamViec.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtCaLamViec.getText());
+            }
+            if (!txtLuong.getText().trim().isEmpty()) {
+                statement.setFloat(paramIndex++, Float.parseFloat(txtLuong.getText()));
+            }
+
+            statement.setString(paramIndex, txtMaNV.getText()); // Thêm mã nhân viên
+
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Cập nhật thông tin nhân viên thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên để sửa!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi sửa thông tin!");
+        }
+    }
+
+    // Hàm đặt lại các trường nhập liệu
+    private void clearInputFields() {
+        txtMaNV.setText("");
+        txtHoTen.setText("");
+        txtSDT.setText("");
+        txtDiaChi.setText("");
+        txtChucVu.setText("");
+        txtEmail.setText("");
+        txtCaLamViec.setText("");
+        txtLuong.setText("");
+    }
+
+    // Hàm đặt cỡ chữ mặc định cho toàn bộ giao diện
+    private void setUIFont(Font font) {
+        UIManager.put("Label.font", font);
+        UIManager.put("Button.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("TextArea.font", font);
+        UIManager.put("Panel.font", font);
+        UIManager.put("OptionPane.font", font);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new giao_dien_nhan_vien().setVisible(true));
+    }
+}
