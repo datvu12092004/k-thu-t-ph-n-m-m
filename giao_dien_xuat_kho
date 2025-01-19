@@ -1,0 +1,188 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class giao_dien_xuat_kho extends JFrame {
+    private JTextField txtmaXK, txtmaThuoc, txtsoLuong, txtmaNV;
+    private JTextArea txtDanhSach;
+    private JButton btnThem, btnXoa, btnXemTatCa, btnXemTheoMa;
+    private Connection connection;
+
+    public giao_dien_xuat_kho() {
+        setUIFont(new Font("Arial", Font.PLAIN, 14));
+
+        // Kết nối cơ sở dữ liệu
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối cơ sở dữ liệu!");
+            return;
+        }
+
+        setTitle("GIAO DIỆN QUẢN LÝ XUẤT KHO");
+        setSize(700, 700);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel nhập liệu
+        JPanel panelInput = new JPanel(new GridLayout(4, 2, 5, 5));
+        panelInput.add(new JLabel("Mã xuất kho:"));
+        txtmaXK = new JTextField();
+        panelInput.add(txtmaXK);
+
+        panelInput.add(new JLabel("Mã thuốc:"));
+        txtmaThuoc = new JTextField();
+        panelInput.add(txtmaThuoc);
+
+        panelInput.add(new JLabel("Số lượng:"));
+        txtsoLuong = new JTextField();
+        panelInput.add(txtsoLuong);
+
+        panelInput.add(new JLabel("Mã nhân viên:"));
+        txtmaNV = new JTextField();
+        panelInput.add(txtmaNV);
+
+        add(panelInput, BorderLayout.NORTH);
+
+        // Panel nút
+        JPanel panelButtons = new JPanel(new FlowLayout());
+        btnThem = new JButton("Thêm");
+        btnXoa = new JButton("Xóa");
+        btnXemTatCa = new JButton("Xem tất cả");
+        btnXemTheoMa = new JButton("Xem theo mã");
+        panelButtons.add(btnThem);
+        panelButtons.add(btnXoa);
+        panelButtons.add(btnXemTatCa);
+        panelButtons.add(btnXemTheoMa);
+        add(panelButtons, BorderLayout.CENTER);
+
+        // TextArea hiển thị danh sách
+        txtDanhSach = new JTextArea(15, 50);
+        txtDanhSach.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(txtDanhSach);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Xử lý sự kiện các nút
+        btnThem.addActionListener(e -> themPhieuXuatKho());
+        btnXoa.addActionListener(e -> xoaPhieuXuatKho());
+        btnXemTatCa.addActionListener(e -> xemTatCaPhieuXuatKho());
+        btnXemTheoMa.addActionListener(e -> xemPhieuXuatKhoTheoMa());
+    }
+
+    // Hàm thêm phiếu xuất kho với ngày xuất là thời gian hiện tại
+    private void themPhieuXuatKho() {
+        try {
+            // Lấy thời gian hiện tại
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String ngayXuat = now.format(formatter);
+
+            String query = "INSERT INTO PhieuXuatKho (maXK, ngayXuat, maThuoc, soLuong, maNV) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaXK.getText());
+            statement.setString(2, ngayXuat);  // Dùng thời gian hiện tại
+            statement.setString(3, txtmaThuoc.getText());
+            statement.setInt(4, Integer.parseInt(txtsoLuong.getText()));
+            statement.setString(5, txtmaNV.getText());
+            statement.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Thêm phiếu xuất kho thành công!");
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi thêm phiếu xuất kho!");
+        }
+    }
+
+    // Hàm xóa phiếu xuất kho
+    private void xoaPhieuXuatKho() {
+        try {
+            String query = "DELETE FROM PhieuXuatKho WHERE maXK = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaXK.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Xóa phiếu xuất kho thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu xuất kho để xóa!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa phiếu xuất kho!");
+        }
+    }
+
+    // Hàm xem tất cả phiếu xuất kho
+    private void xemTatCaPhieuXuatKho() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM PhieuXuatKho";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                txtDanhSach.append("Mã xuất kho: " + resultSet.getString("maXK") + "\n");
+                txtDanhSach.append("Ngày xuất: " + resultSet.getString("ngayXuat") + "\n");
+                txtDanhSach.append("Mã thuốc: " + resultSet.getString("maThuoc") + "\n");
+                txtDanhSach.append("Số lượng: " + resultSet.getInt("soLuong") + "\n");
+                txtDanhSach.append("Mã nhân viên: " + resultSet.getString("maNV") + "\n");
+                txtDanhSach.append("------------------------------------\n");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem phiếu xuất kho!");
+        }
+    }
+
+    // Hàm xem phiếu xuất kho theo mã xuất kho
+    private void xemPhieuXuatKhoTheoMa() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM PhieuXuatKho WHERE maXK = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaXK.getText());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                txtDanhSach.append("Mã xuất kho: " + resultSet.getString("maXK") + "\n");
+                txtDanhSach.append("Ngày xuất: " + resultSet.getString("ngayXuat") + "\n");
+                txtDanhSach.append("Mã thuốc: " + resultSet.getString("maThuoc") + "\n");
+                txtDanhSach.append("Số lượng: " + resultSet.getInt("soLuong") + "\n");
+                txtDanhSach.append("Mã nhân viên: " + resultSet.getString("maNV") + "\n");
+                txtDanhSach.append("------------------------------------\n");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem phiếu xuất kho theo mã!");
+        }
+    }
+
+    // Hàm đặt lại các trường nhập
+    private void clearInputFields() {
+        txtmaXK.setText("");
+        txtmaThuoc.setText("");
+        txtsoLuong.setText("");
+        txtmaNV.setText("");
+    }
+
+    // Cài đặt font mặc định
+    private void setUIFont(Font font) {
+        UIManager.put("Label.font", font);
+        UIManager.put("Button.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("TextArea.font", font);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new giao_dien_xuat_kho().setVisible(true));
+    }
+}
