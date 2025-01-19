@@ -6,83 +6,73 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class MainMenuGUI extends JFrame {
+    private String username;
 
-    public MainMenuGUI() {
-        setTitle("Giao Diện Chính Quản Lý Quầy Thuốc TripleD");
+    public MainMenuGUI(String username) {
+        this.username = username;
+        setTitle("Giao Diện Chính Quản Lý Quầy Thuốc");
         setSize(600, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new GridLayout(4, 2, 10, 10));
-        getContentPane().setBackground(new Color(40, 40, 40));
 
         JLabel logoLabel = new JLabel(new ImageIcon("icons/logo.png"));
         logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(logoLabel);
 
-        JButton btnNhanVien = createStyledButton("Quản Lý Nhân Viên", "icons/staff.png");
-        JButton btnNhapKho = createStyledButton("Quản Lý Nhập Kho", "icons/inventory.png");
         JButton btnThuoc = createStyledButton("Quản Lý Thuốc", "icons/medicine.png");
-        JButton btnXuatKho = createStyledButton("Quản Lý Xuất Kho", "icons/outgoing.png");
         JButton btnKhachHang = createStyledButton("Quản Lý Khách Hàng", "icons/customer.png");
-        JButton btnNhaSanXuat = createStyledButton("Quản Lý Nhà Sản Xuất", "icons/manufacturer.png");
         JButton btnHoaDon = createStyledButton("Quản Lý Hóa Đơn", "icons/invoice.png");
+        JButton btnNhaSanXuat = createStyledButton("Quản Lý Nhà Sản Xuất", "icons/manufacturer.png");
+        JButton btnNhapKho = createStyledButton("Quản Lý Nhập Kho", "icons/inventory.png");
+        JButton btnXuatKho = createStyledButton("Quản Lý Xuất Kho", "icons/outgoing.png");
+        JButton btnNhanVien = createStyledButton("Quản Lý Nhân Viên", "icons/staff.png");
 
-        btnNhanVien.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new giao_dien_nhan_vien().setVisible(true);
-            }
-        });
+        // Ẩn tất cả các nút trước, sau đó bật lên theo quyền
+        btnThuoc.setVisible(false);
+        btnKhachHang.setVisible(false);
+        btnHoaDon.setVisible(false);
+        btnNhaSanXuat.setVisible(false);
+        btnNhapKho.setVisible(false);
+        btnXuatKho.setVisible(false);
+        btnNhanVien.setVisible(false);
 
-        btnNhapKho.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new giao_dien_nhap_kho().setVisible(true);
-            }
-        });
+        // Phân quyền theo username
+        if (username.equals("CHT")) { // Chủ hiệu thuốc
+            btnThuoc.setVisible(true);
+            btnKhachHang.setVisible(true);
+            btnHoaDon.setVisible(true);
+            btnNhaSanXuat.setVisible(true);
+            btnNhapKho.setVisible(true);
+            btnXuatKho.setVisible(true);
+            btnNhanVien.setVisible(true);
+        } else if (username.equals("NVBH")) { // Nhân viên bán hàng
+            btnThuoc.setVisible(true);
+            btnKhachHang.setVisible(true);
+            btnHoaDon.setVisible(true);
+            btnNhaSanXuat.setVisible(true);
+        } else if (username.equals("NVQK")) { // Nhân viên quản kho
+            btnThuoc.setVisible(true);
+            btnNhapKho.setVisible(true);
+            btnXuatKho.setVisible(true);
+            btnNhaSanXuat.setVisible(true);
+        }
 
-        btnThuoc.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new giao_dien_thuoc().setVisible(true);
-            }
-        });
+        btnThuoc.addActionListener(e -> new giao_dien_thuoc().setVisible(true));
+        btnKhachHang.addActionListener(e -> new GiaoDienKhachHang().setVisible(true));
+        btnHoaDon.addActionListener(e -> new HoaDonGUI().setVisible(true));
+        btnNhaSanXuat.addActionListener(e -> new GiaoDienNhaSanXuat().setVisible(true));
+        btnNhapKho.addActionListener(e -> new giao_dien_nhap_kho().setVisible(true));
+        btnXuatKho.addActionListener(e -> new giao_dien_xuat_kho().setVisible(true));
+        btnNhanVien.addActionListener(e -> new giao_dien_nhan_vien().setVisible(true));
 
-        btnXuatKho.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new giao_dien_xuat_kho().setVisible(true);
-            }
-        });
-
-        btnKhachHang.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new GiaoDienKhachHang().setVisible(true);
-            }
-        });
-
-        btnNhaSanXuat.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new GiaoDienNhaSanXuat().setVisible(true);
-            }
-        });
-
-        btnHoaDon.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new HoaDonGUI().setVisible(true);
-            }
-        });
-
-        add(btnNhanVien);
-        add(btnNhapKho);
         add(btnThuoc);
-        add(btnXuatKho);
         add(btnKhachHang);
-        add(btnNhaSanXuat);
         add(btnHoaDon);
+        add(btnNhaSanXuat);
+        add(btnNhapKho);
+        add(btnXuatKho);
+        add(btnNhanVien);
 
         setVisible(true);
     }
@@ -108,9 +98,5 @@ public class MainMenuGUI extends JFrame {
         });
 
         return button;
-    }
-
-    public static void main(String[] args) {
-        new MainMenuGUI();
     }
 }
