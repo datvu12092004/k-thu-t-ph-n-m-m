@@ -1,0 +1,265 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+
+public class giao_dien_thuoc extends JFrame {
+    private JTextField txtmaThuoc, txttenThuoc, txtmaNSX, txtdonVi, txtngaySanXuat, txthanSuDung, txtgiaBan;
+    private JTextArea txtDanhSach;
+    private JButton btnThem, btnXoa, btnXem, btnSua;
+    private Connection connection;
+
+    public giao_dien_thuoc() {
+        // Tăng cỡ chữ hiển thị của giao diện
+        setUIFont(new Font("Arial", Font.PLAIN, 14));
+
+        // Thiết lập kết nối cơ sở dữ liệu
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối cơ sở dữ liệu!");
+            return;
+        }
+
+        setTitle("GIAO DIỆN THÔNG TIN THUỐC");
+        setSize(600, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel bán liệu
+        JPanel panelInput = new JPanel(new GridLayout(9, 2, 5, 5));
+        panelInput.add(new JLabel("Mã thuốc:"));
+        txtmaThuoc = new JTextField();
+        panelInput.add(txtmaThuoc);
+
+        panelInput.add(new JLabel("Tên thuốc:"));
+        txttenThuoc = new JTextField();
+        panelInput.add(txttenThuoc);
+
+        panelInput.add(new JLabel("Mã nhà sản xuất:"));
+        txtmaNSX = new JTextField();
+        panelInput.add(txtmaNSX);
+
+        panelInput.add(new JLabel("Đơn vị tính:"));
+        txtdonVi = new JTextField();
+        panelInput.add(txtdonVi);
+
+        panelInput.add(new JLabel("Hạn sử dụng:"));
+        txtngaySanXuat = new JTextField();
+        panelInput.add(txtngaySanXuat);
+
+        panelInput.add(new JLabel("Ngày sản xuất:"));
+        txthanSuDung = new JTextField();
+        panelInput.add(txthanSuDung);
+
+        panelInput.add(new JLabel("Giá bán:"));
+        txtgiaBan = new JTextField();
+        panelInput.add(txtgiaBan);
+
+
+        add(panelInput, BorderLayout.NORTH);
+
+        // Panel các nút
+        JPanel panelButtons = new JPanel(new FlowLayout());
+        btnThem = new JButton("Thêm");
+        btnXoa = new JButton("Xóa");
+        btnXem = new JButton("Tìm kiếm");
+        btnSua = new JButton("Sửa");
+        panelButtons.add(btnThem);
+        panelButtons.add(btnXoa);
+        panelButtons.add(btnXem);
+        panelButtons.add(btnSua);
+        add(panelButtons, BorderLayout.CENTER);
+
+        // TextArea hiển thị danh sách
+        txtDanhSach = new JTextArea(10, 50);
+        txtDanhSach.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(txtDanhSach);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Xử lý sự kiện cho các nút
+        btnThem.addActionListener(e -> themThuoc());
+        btnXoa.addActionListener(e -> xoaThuoc());
+        btnXem.addActionListener(e -> xemThuoc());
+        btnSua.addActionListener(e -> suaThuoc());
+    }
+
+    // Hàm xử lý sự kiện thêm thuốc
+    private void themThuoc() {
+        try {
+            String query = "INSERT INTO Thuoc (maThuoc, tenThuoc, maNSX, donVi, ngaySanXuat, hanSuDung, giaBan) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaThuoc.getText());
+            statement.setString(2, txttenThuoc.getText());
+            statement.setString(3, txtmaNSX.getText());
+            statement.setString(4, txtdonVi.getText());
+            statement.setString(5, txtngaySanXuat.getText());
+            statement.setString(6, txthanSuDung.getText());
+            statement.setFloat(7, Float.parseFloat(txtgiaBan.getText()));
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Thêm thông tin thuốc thành công!");
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi thêm thông tin!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xóa thuốc
+    private void xoaThuoc() {
+        try {
+            String query = "DELETE FROM Thuoc WHERE maThuoc = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaThuoc.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Xóa thông tin thuốc thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thuốc!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa thông tin!");
+        }
+    }
+
+    // Hàm xử lý sự kiện xem thuốc
+    private void xemThuoc() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM Thuoc WHERE maThuoc = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaThuoc.getText());
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                txtDanhSach.append("Mã thuốc: " + resultSet.getString("maThuoc") + "\n");
+                txtDanhSach.append("Tên thuốc: " + resultSet.getString("tenThuoc") + "\n");
+                txtDanhSach.append("Mã nhà sản xuất: " + resultSet.getString("maNSX") + "\n");
+                txtDanhSach.append("Đơn vị tính: " + resultSet.getString("donVi") + "\n");
+                txtDanhSach.append("Ngày sản xuất: " + resultSet.getString("ngaySanXuat") + "\n");
+                txtDanhSach.append("Hạn sử dụng: " + resultSet.getString("hanSuDung") + "\n");
+                txtDanhSach.append("Giá bán: " + resultSet.getFloat("giaBan") + "\n");
+               
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thuốc!");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem thông tin!");
+        }
+    }
+
+ // Hàm xử lý sự kiện sửa thuốc
+    private void suaThuoc() {
+        try {
+            StringBuilder query = new StringBuilder("UPDATE Thuoc SET ");
+            boolean hasFieldToUpdate = false;
+
+            if (!txttenThuoc.getText().trim().isEmpty()) {
+                query.append("tenThuoc = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtmaNSX.getText().trim().isEmpty()) {
+                query.append("maNSX = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtdonVi.getText().trim().isEmpty()) {
+                query.append("donVi = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtngaySanXuat.getText().trim().isEmpty()) {
+                query.append("ngaySanXuat = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txthanSuDung.getText().trim().isEmpty()) {
+                query.append("hanSuDung = ?, ");
+                hasFieldToUpdate = true;
+            }
+            if (!txtgiaBan.getText().trim().isEmpty()) {
+                query.append("giaBan = ?, ");
+                hasFieldToUpdate = true;
+            }
+           
+
+            if (!hasFieldToUpdate) {
+                JOptionPane.showMessageDialog(this, "Không có trường nào để cập nhật!");
+                return;
+            }
+
+            // Xóa dấu phẩy và khoảng trắng cuối cùng
+            query.setLength(query.length() - 2);
+            query.append(" WHERE maThuoc = ?");
+
+            PreparedStatement statement = connection.prepareStatement(query.toString());
+            int paramIndex = 1;
+
+            if (!txttenThuoc.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txttenThuoc.getText());
+            }
+            if (!txtmaNSX.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtmaNSX.getText());
+            }
+            if (!txtdonVi.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtdonVi.getText());
+            }
+            if (!txtngaySanXuat.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txtngaySanXuat.getText());
+            }
+            if (!txthanSuDung.getText().trim().isEmpty()) {
+                statement.setString(paramIndex++, txthanSuDung.getText());
+            }
+            if (!txtgiaBan.getText().trim().isEmpty()) {
+                statement.setFloat(paramIndex++, Float.parseFloat(txtgiaBan.getText()));
+            }
+         
+
+            // Cuối cùng, thêm mã thuốc
+            statement.setString(paramIndex, txtmaThuoc.getText());
+
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Cập nhật thông tin thuốc thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thuốc để sửa!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi sửa thông tin!");
+        }
+    }
+
+    // Hàm đặt lại các trường bán  liệu
+    private void clearInputFields() {
+        txtmaThuoc.setText("");
+        txttenThuoc.setText("");
+        txtmaNSX.setText("");
+        txtdonVi.setText("");
+        txtngaySanXuat.setText("");
+        txthanSuDung.setText("");
+        txtgiaBan.setText("");
+      
+    }
+
+    // Hàm đặt cỡ chữ mặc định cho toàn bộ giao diện
+    private void setUIFont(Font font) {
+        UIManager.put("Label.font", font);
+        UIManager.put("Button.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("TextArea.font", font);
+        UIManager.put("Panel.font", font);
+        UIManager.put("OptionPane.font", font);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new giao_dien_thuoc().setVisible(true));
+    }
+}
