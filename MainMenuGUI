@@ -1,0 +1,116 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class MainMenuGUI extends JFrame {
+
+    public MainMenuGUI() {
+        setTitle("Giao Diện Chính Quản Lý Quầy Thuốc TripleD");
+        setSize(600, 600);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(4, 2, 10, 10));
+        getContentPane().setBackground(new Color(40, 40, 40));
+
+        JLabel logoLabel = new JLabel(new ImageIcon("icons/logo.png"));
+        logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        add(logoLabel);
+
+        JButton btnNhanVien = createStyledButton("Quản Lý Nhân Viên", "icons/staff.png");
+        JButton btnNhapKho = createStyledButton("Quản Lý Nhập Kho", "icons/inventory.png");
+        JButton btnThuoc = createStyledButton("Quản Lý Thuốc", "icons/medicine.png");
+        JButton btnXuatKho = createStyledButton("Quản Lý Xuất Kho", "icons/outgoing.png");
+        JButton btnKhachHang = createStyledButton("Quản Lý Khách Hàng", "icons/customer.png");
+        JButton btnNhaSanXuat = createStyledButton("Quản Lý Nhà Sản Xuất", "icons/manufacturer.png");
+        JButton btnHoaDon = createStyledButton("Quản Lý Hóa Đơn", "icons/invoice.png");
+
+        btnNhanVien.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new giao_dien_nhan_vien().setVisible(true);
+            }
+        });
+
+        btnNhapKho.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new giao_dien_nhap_kho().setVisible(true);
+            }
+        });
+
+        btnThuoc.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new giao_dien_thuoc().setVisible(true);
+            }
+        });
+
+        btnXuatKho.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new giao_dien_xuat_kho().setVisible(true);
+            }
+        });
+
+        btnKhachHang.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new GiaoDienKhachHang().setVisible(true);
+            }
+        });
+
+        btnNhaSanXuat.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new GiaoDienNhaSanXuat().setVisible(true);
+            }
+        });
+
+        btnHoaDon.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new HoaDonGUI().setVisible(true);
+            }
+        });
+
+        add(btnNhanVien);
+        add(btnNhapKho);
+        add(btnThuoc);
+        add(btnXuatKho);
+        add(btnKhachHang);
+        add(btnNhaSanXuat);
+        add(btnHoaDon);
+
+        setVisible(true);
+    }
+
+    private JButton createStyledButton(String text, String iconPath) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Arial", Font.BOLD, 18));
+        button.setForeground(Color.WHITE);
+        button.setBackground(new Color(40, 40, 40));
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(150, 50));
+        button.setIcon(new ImageIcon(iconPath));
+        button.setHorizontalTextPosition(SwingConstants.RIGHT);
+        button.setVerticalTextPosition(SwingConstants.CENTER);
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(60, 60, 60));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(40, 40, 40));
+            }
+        });
+
+        return button;
+    }
+
+    public static void main(String[] args) {
+        new MainMenuGUI();
+    }
+}
