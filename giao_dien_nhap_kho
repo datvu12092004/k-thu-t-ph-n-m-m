@@ -1,0 +1,203 @@
+package quan_ly_quay_thuoc;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+
+public class giao_dien_nhap_kho extends JFrame {
+    private JTextField txtmaNK, txtngayNhap, txtmaThuoc, txtsoLuong, txtmaNV, txtgiaNhap;
+    private JTextArea txtDanhSach;
+    private JButton btnThem, btnXoa, btnXemTatCa, btnXemTheoMa;
+    private Connection connection;
+
+    public giao_dien_nhap_kho() {
+        setUIFont(new Font("Arial", Font.PLAIN, 14));
+
+        // Kết nối cơ sở dữ liệu
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=quan_ly_quay_thuoc;encrypt=false";
+            String username = "sa";
+            String password = "123";
+            connection = DriverManager.getConnection(url, username, password);
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối cơ sở dữ liệu!");
+            return;
+        }
+
+        setTitle("GIAO DIỆN QUẢN LÝ NHẬP KHO");
+        setSize(700, 700);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel nhập liệu
+        JPanel panelInput = new JPanel(new GridLayout(6, 2, 5, 5));
+        panelInput.add(new JLabel("Mã nhập kho:"));
+        txtmaNK = new JTextField();
+        panelInput.add(txtmaNK);
+
+        panelInput.add(new JLabel("Ngày nhập:"));
+        txtngayNhap = new JTextField();
+        txtngayNhap.setEditable(false); // Không cho phép người dùng nhập ngày
+        panelInput.add(txtngayNhap);
+
+        panelInput.add(new JLabel("Mã thuốc:"));
+        txtmaThuoc = new JTextField();
+        panelInput.add(txtmaThuoc);
+
+        panelInput.add(new JLabel("Số lượng:"));
+        txtsoLuong = new JTextField();
+        panelInput.add(txtsoLuong);
+
+        panelInput.add(new JLabel("Mã nhân viên:"));
+        txtmaNV = new JTextField();
+        panelInput.add(txtmaNV);
+
+        panelInput.add(new JLabel("Giá nhập:"));
+        txtgiaNhap = new JTextField();
+        panelInput.add(txtgiaNhap);
+
+        add(panelInput, BorderLayout.NORTH);
+
+        // Panel nút
+        JPanel panelButtons = new JPanel(new FlowLayout());
+        btnThem = new JButton("Thêm");
+        btnXoa = new JButton("Xóa");
+        btnXemTatCa = new JButton("Xem tất cả");
+        btnXemTheoMa = new JButton("Xem theo mã");
+        panelButtons.add(btnThem);
+        panelButtons.add(btnXoa);
+        panelButtons.add(btnXemTatCa);
+        panelButtons.add(btnXemTheoMa);
+        add(panelButtons, BorderLayout.CENTER);
+
+        // TextArea hiển thị danh sách
+        txtDanhSach = new JTextArea(15, 50);
+        txtDanhSach.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(txtDanhSach);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Xử lý sự kiện các nút
+        btnThem.addActionListener(e -> themPhieuNhapKho());
+        btnXoa.addActionListener(e -> xoaPhieuNhapKho());
+        btnXemTatCa.addActionListener(e -> xemTatCaPhieuNhapKho());
+        btnXemTheoMa.addActionListener(e -> xemPhieuNhapKhoTheoMa());
+    }
+
+    // Hàm thêm phiếu nhập kho
+    private void themPhieuNhapKho() {
+        try {
+            // Lấy thời gian hiện tại
+            java.util.Date currentDate = new java.util.Date();
+            java.sql.Timestamp ngayNhap = new java.sql.Timestamp(currentDate.getTime());
+
+            // Cập nhật trường txtngayNhap hiển thị ngày giờ hiện tại
+            txtngayNhap.setText(ngayNhap.toString());
+
+            String query = "INSERT INTO PhieuNhapKho (maNK, ngayNhap, maThuoc, soLuong, maNV, giaNhap) VALUES (?, ?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaNK.getText());
+            statement.setTimestamp(2, ngayNhap); // Sử dụng ngày giờ hiện tại
+            statement.setString(3, txtmaThuoc.getText());
+            statement.setInt(4, Integer.parseInt(txtsoLuong.getText()));
+            statement.setString(5, txtmaNV.getText());
+            statement.setBigDecimal(6, new java.math.BigDecimal(txtgiaNhap.getText()));
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Thêm phiếu nhập kho thành công!");
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi thêm phiếu nhập kho!");
+        }
+    }
+
+    // Hàm xóa phiếu nhập kho
+    private void xoaPhieuNhapKho() {
+        try {
+            String query = "DELETE FROM PhieuNhapKho WHERE maNK = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaNK.getText());
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, "Xóa phiếu nhập kho thành công!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu nhập kho để xóa!");
+            }
+            clearInputFields();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa phiếu nhập kho!");
+        }
+    }
+
+    // Hàm xem tất cả phiếu nhập kho
+    private void xemTatCaPhieuNhapKho() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM PhieuNhapKho";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                txtDanhSach.append("Mã nhập kho: " + resultSet.getString("maNK") + "\n");
+                txtDanhSach.append("Ngày nhập: " + resultSet.getString("ngayNhap") + "\n");
+                txtDanhSach.append("Mã thuốc: " + resultSet.getString("maThuoc") + "\n");
+                txtDanhSach.append("Số lượng: " + resultSet.getInt("soLuong") + "\n");
+                txtDanhSach.append("Mã nhân viên: " + resultSet.getString("maNV") + "\n");
+                txtDanhSach.append("Giá nhập: " + resultSet.getBigDecimal("giaNhap") + "\n");
+                txtDanhSach.append("------------------------------------\n");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem phiếu nhập kho!");
+        }
+    }
+
+    // Hàm xem phiếu nhập kho theo mã nhập kho
+    private void xemPhieuNhapKhoTheoMa() {
+        txtDanhSach.setText("");
+        try {
+            String query = "SELECT * FROM PhieuNhapKho WHERE maNK = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, txtmaNK.getText());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                txtDanhSach.append("Mã nhập kho: " + resultSet.getString("maNK") + "\n");
+                txtDanhSach.append("Ngày nhập: " + resultSet.getString("ngayNhap") + "\n");
+                txtDanhSach.append("Mã thuốc: " + resultSet.getString("maThuoc") + "\n");
+                txtDanhSach.append("Số lượng: " + resultSet.getInt("soLuong") + "\n");
+                txtDanhSach.append("Mã nhân viên: " + resultSet.getString("maNV") + "\n");
+                txtDanhSach.append("Giá nhập: " + resultSet.getBigDecimal("giaNhap") + "\n");
+                txtDanhSach.append("------------------------------------\n");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi xem phiếu nhập kho theo mã!");
+        }
+    }
+
+    // Hàm đặt lại các trường
+    private void clearInputFields() {
+        txtmaNK.setText("");
+        txtngayNhap.setText(""); // Đặt lại trường ngày nhập
+        txtmaThuoc.setText("");
+        txtsoLuong.setText("");
+        txtmaNV.setText("");
+        txtgiaNhap.setText("");
+    }
+
+    // Cài đặt font mặc định
+    private void setUIFont(Font font) {
+        UIManager.put("Label.font", font);
+        UIManager.put("Button.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("TextArea.font", font);
+        UIManager.put("Panel.font", font);
+        UIManager.put("OptionPane.font", font);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new giao_dien_nhap_kho().setVisible(true));
+    }
+}
